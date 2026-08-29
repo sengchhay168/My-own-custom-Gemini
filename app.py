@@ -2,17 +2,20 @@ import streamlit as st
 from google import genai
 from google.genai import types
 from PIL import Image
+import time
 
 # 1. Page Configuration
 st.set_page_config(page_title="My Custom Gemini", page_icon="🤖", layout="centered")
 
-# Initialize Core Session States for Advanced Multi-Chat Memory
+# Initialize Core Session States for Advanced Multi-Chat Memory & Quota Tracking
 if "chats_history" not in st.session_state:
     st.session_state.chats_history = {}  # Format: {chat_id: {"title": str, "messages": list}}
 if "active_chat_id" not in st.session_state:
     st.session_state.active_chat_id = None
 if "show_uploader" not in st.session_state:
     st.session_state.show_uploader = False  # Track visibility state of the file uploader
+if "quota_exceeded" not in st.session_state:
+    st.session_state.quota_exceeded = False
 
 API_KEY = st.secrets["GEMINI_API_KEY"]
 
@@ -21,7 +24,6 @@ if "client" not in st.session_state:
 
 # Helper function to generate a unique ID string for new conversations
 def create_new_chat_session():
-    import time
     new_id = f"chat_{int(time.time())}"
     st.session_state.chats_history[new_id] = {
         "title": "New Chat",
@@ -50,7 +52,7 @@ with st.sidebar:
     
     for chat_id in list(st.session_state.chats_history.keys()):
         chat_data = st.session_state.chats_history[chat_id]
-        side_col1, side_col2 = st.columns([4, 1]) # Allocate wider space for name label
+        side_col1, side_col2 = st.columns([4, 1])
         
         with side_col1:
             is_current = "🔹 " if chat_id == active_id else ""
@@ -73,8 +75,8 @@ st.title("🤖 My Personal Gemini AI")
 
 active_messages = st.session_state.chats_history[active_id]["messages"]
 
-# 3. Quick Action Buttons (Only show if chat history is empty)
-if not active_messages:
+# 3. Quick Action Buttons (Only show if chat history is empty and quota is fine)
+if not active_messages and not st.session_state.quota_exceeded:
     st.markdown("### ⚡ Quick Prompts")
     col1, col2, col3 = st.columns(3)
     
@@ -116,7 +118,6 @@ if st.session_state.show_uploader:
         exp_col1, exp_col2 = st.columns(2)
         
         with exp_col1:
-            # Let the user pick personality options
             ai_role = st.selectbox(
                 "AI Personality:",
                 ["Standard Assistant", "Expert Code Tutor", "Creative Writer", "Sarcastic Friend"]
@@ -128,7 +129,6 @@ if st.session_state.show_uploader:
             elif ai_role == "Sarcastic Friend":
                 instructions = "You are a witty, sarcastic friend. Use lighthearted humor and playful banter."
                 
-            # If the user swapped roles, safely delete old engine reference to update system instruction configuration cleanly
             if "current_role" not in st.session_state or st.session_state.current_role != ai_role:
                 st.session_state.current_role = ai_role
                 if "chat_engine" in st.session_state:
@@ -139,18 +139,20 @@ if st.session_state.show_uploader:
                 "Upload Image or Text File:", 
                 type=["png", "jpg", "jpeg", "txt", "py", "md"]
             )
-            # Only collect the audio file here, don't send it yet
             audio_file = st.audio_input("Record a voice prompt")
-            
-# 6. Initialize the persistent engine connection layer with target instructions payload safely
+
+# 6. Initialize the persistent engine connection layer
 if "chat_engine" not in st.session_state:
     st.session_state.chat_engine = st.session_state.client.chats.create(
         model="gemini-3.6-flash",
         config={"system_instruction": instructions}
     )
 
-# 7. CHAT INPUT LAYER (Locked permanently to screen footer baseline natively)
-user_prompt = st.chat_input("Ask your custom Gemini anything...")
+# 7. CHAT INPUT LAYER (Locked if quota is exceeded)
+user_prompt = st.chat_input(
+    "Ask your custom Gemini anything..." if not st.session_state.quota_exceeded else "API Quota Exceeded - Chat Locked",
+    disabled=st.session_state.quota_exceeded
+)
 
 # 8. Process Input and Communicate with Gemini Backend
 if user_prompt or audio_file:
@@ -203,4 +205,9 @@ if user_prompt or audio_file:
             st.rerun()
             
         except Exception as e:
-            message_placeholder.markdown(f"❌ **Error:** {e}")
+            error_str = str(e)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                st.session_state.quota_exceeded = True
+                message_placeholder.markdown("⚠️ **API Quota Exceeded:** You've hit the free tier request limit. The chat input has been locked until your quota resets.")
+            else:
+                message_placeholder.markdown(f"❌ **Error:** {e}")
