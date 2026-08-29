@@ -99,6 +99,7 @@ for msg in active_messages:
 
 # 5. DYNAMIC TOGGLE ASSET CONTROLLER
 uploaded_file = None
+audio_file = None
 ai_role = "Standard Assistant"
 instructions = "You are a helpful assistant."
 
