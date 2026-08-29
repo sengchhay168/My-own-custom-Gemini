@@ -1,5 +1,6 @@
 import streamlit as st
 from google import genai
+from google.genai import types
 from PIL import Image
 
 # 1. Page Configuration
@@ -160,14 +161,12 @@ user_prompt = st.chat_input("Ask your custom Gemini anything...")
 
 # 8. Process Input and Communicate with Gemini Backend
 if user_prompt or audio_file:
-    # Set a title if it's a new chat
     if st.session_state.chats_history[active_id]["title"] == "New Chat":
         display_title = user_prompt if user_prompt else "Voice Message"
         words = display_title.split()
         short_title = " ".join(words[:4]) + "..." if len(words) > 4 else display_title
         st.session_state.chats_history[active_id]["title"] = short_title
         
-    # Display user input in chat
     if user_prompt:
         with st.chat_message("user"):
             st.markdown(user_prompt)
@@ -177,14 +176,20 @@ if user_prompt or audio_file:
             st.audio(audio_file)
         active_messages.append({"role": "user", "content": "🎤 [Voice Message]"})
 
-    # Get response from Gemini
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         message_placeholder.markdown("🤖 *Thinking...*")
         
         try:
             if audio_file is not None:
-                prompt_payload = [user_prompt if user_prompt else "Listen to this voice recording and reply:", audio_file]
+                audio_bytes = audio_file.read()
+                prompt_payload = [
+                    user_prompt if user_prompt else "Listen to this voice recording and reply:",
+                    types.Part.from_bytes(
+                        data=audio_bytes,
+                        mime_type="audio/wav",
+                    )
+                ]
                 response = st.session_state.chat_engine.send_message(prompt_payload)
             elif uploaded_file is not None:
                 file_name = uploaded_file.name
@@ -201,7 +206,6 @@ if user_prompt or audio_file:
             message_placeholder.markdown(response.text)
             active_messages.append({"role": "assistant", "content": response.text})
             
-            # Hide asset overlay drawer following message submission
             st.session_state.show_uploader = False
             st.rerun()
             
