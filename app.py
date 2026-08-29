@@ -142,10 +142,10 @@ if st.session_state.show_uploader:
 
             if audio_file is not None:
             # Pass the audio bytes directly into Gemini alongside a text prompt
-            response = st.session_state.chat_engine.send_message([
-                "Listen to this voice recording and reply:",
-                audio_file,
-            ])
+                response = st.session_state.chat_engine.send_message([
+                    "Listen to this voice recording and reply:",
+                    audio_file,
+                ])
 
 # 6. Initialize the persistent engine connection layer with target instructions payload safely
 if "chat_engine" not in st.session_state:
