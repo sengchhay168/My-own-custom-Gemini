@@ -139,20 +139,9 @@ if st.session_state.show_uploader:
                 "Upload Image or Text File:", 
                 type=["png", "jpg", "jpeg", "txt", "py", "md"]
             )
-            # Inside your asset control block
+            # Only collect the audio file here, don't send it yet
             audio_file = st.audio_input("Record a voice prompt")
-
-            if audio_file is not None:
-                audio_bytes = audio_file.read()
-                prompt_payload = [
-                    user_prompt if user_prompt else "Listen to this voice recording and reply:",
-                    types.Part.from_bytes(
-                        data=audio_bytes,
-                        mime_type="audio/wav",
-                    )
-                ]
-                response = st.session_state.chat_engine.send_message(prompt_payload)
-
+            
 # 6. Initialize the persistent engine connection layer with target instructions payload safely
 if "chat_engine" not in st.session_state:
     st.session_state.chat_engine = st.session_state.client.chats.create(
