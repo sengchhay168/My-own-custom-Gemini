@@ -137,7 +137,15 @@ if st.session_state.show_uploader:
                 "Upload Image or Text File:", 
                 type=["png", "jpg", "jpeg", "txt", "py", "md"]
             )
-    st.markdown("---")
+            # Inside your asset control block
+            audio_file = st.audio_input("Record a voice prompt")
+
+            if audio_file is not None:
+            # Pass the audio bytes directly into Gemini alongside a text prompt
+            response = st.session_state.chat_engine.send_message([
+                "Listen to this voice recording and reply:",
+                audio_file,
+            ])
 
 # 6. Initialize the persistent engine connection layer with target instructions payload safely
 if "chat_engine" not in st.session_state:
@@ -150,22 +158,34 @@ if "chat_engine" not in st.session_state:
 user_prompt = st.chat_input("Ask your custom Gemini anything...")
 
 # 8. Process Input and Communicate with Gemini Backend
-if user_prompt:
+if user_prompt or audio_file:
+    # Set a title if it's a new chat
     if st.session_state.chats_history[active_id]["title"] == "New Chat":
-        words = user_prompt.split()
-        short_title = " ".join(words[:4]) + "..." if len(words) > 4 else user_prompt
+        display_title = user_prompt if user_prompt else "Voice Message"
+        words = display_title.split()
+        short_title = " ".join(words[:4]) + "..." if len(words) > 4 else display_title
         st.session_state.chats_history[active_id]["title"] = short_title
         
-    with st.chat_message("user"):
-        st.markdown(user_prompt)
-    active_messages.append({"role": "user", "content": user_prompt})
+    # Display user input in chat
+    if user_prompt:
+        with st.chat_message("user"):
+            st.markdown(user_prompt)
+        active_messages.append({"role": "user", "content": user_prompt})
+    elif audio_file:
+        with st.chat_message("user"):
+            st.audio(audio_file)
+        active_messages.append({"role": "user", "content": "🎤 [Voice Message]"})
 
+    # Get response from Gemini
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         message_placeholder.markdown("🤖 *Thinking...*")
         
         try:
-            if uploaded_file is not None:
+            if audio_file is not None:
+                prompt_payload = [user_prompt if user_prompt else "Listen to this voice recording and reply:", audio_file]
+                response = st.session_state.chat_engine.send_message(prompt_payload)
+            elif uploaded_file is not None:
                 file_name = uploaded_file.name
                 if any(file_name.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg"]):
                     img_data = Image.open(uploaded_file)
@@ -178,7 +198,6 @@ if user_prompt:
                 response = st.session_state.chat_engine.send_message(user_prompt)
                 
             message_placeholder.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text}) if "messages" in st.session_state else None
             active_messages.append({"role": "assistant", "content": response.text})
             
             # Hide asset overlay drawer following message submission
