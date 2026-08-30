@@ -1,26 +1,34 @@
-# My Own Custom Gemini AI 🤖
+# My Personal Gemini AI 🤖
 
-This is my very first custom AI project! I built a personalized AI chatbot assistant using Python and the Google Gemini API. 
+A fully featured, multi-chat AI assistant web application built with **Python**, **Streamlit**, and the **Google Gemini API** (using the advanced `google-genai` SDK).
 
-## 🚀 Features
-- Connects directly to Gemini models.
-- Interactive command-line or web interface.
-- Built as a learning milestone for my Python programming journey.
+## ✨ Features
+- **💬 Multi-Chat Dashboards:** Create, rename, and delete multiple conversation histories seamlessly.
+- **🎭 AI Personality Swapper:** Change your assistant's tone instantly (Expert Code Tutor, Creative Writer, Sarcastic Friend).
+- **📎 Multi-Modal File Controller:** Upload text documentation or source code files for analysis, or upload images directly to the chatbot.
+- **🎤 Voice Input Processor:** Directly record voice prompts into the app interface.
+- **⚠️ Quota Management:** Built-in catch features to gracefully lock input streams when api limits are crossed.
 
-## 🛠️ Tech Stack
-- **Language:** Python
-- **API:** Google Gemini API
+## ⚙️ How to Setup locally
 
-## 📦 Installation & Setup
-1. Clone this repository:
+1. **Clone the project repository:**
    ```bash
-   git clone https://github.com/sengchhay168/My-own-custom-Gemini.git
+   git clone https://github.com
+   cd My-own-custom-Gemini
    ```
-2. Install the required dependencies:
+
+2. **Install necessary dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the application:
+
+3. **Configure API Secrets:**
+   Create a folder named `.streamlit` and add a `secrets.toml` file inside it:
+   ```toml
+   GEMINI_API_KEY = "your_actual_api_key_here"
+   ```
+
+4. **Launch the application interface:**
    ```bash
-   python app.py
+   streamlit run app.py
    ```
